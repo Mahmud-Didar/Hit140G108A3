@@ -305,4 +305,127 @@ print(ols_model.summary())
 print("\nModel R² = {:.3f}".format(ols_model.rsquared))
 print("Adjusted R² = {:.3f}".format(ols_model.rsquared_adj))
 
+Bro, Upload this code into github. 
 
+
+
+# ============================================================================
+# SECTION 6: INVESTIGATION B - SEASONAL CHANGES
+# ============================================================================
+print("\n" + "="*80)
+print("SECTION 6: INVESTIGATION B - SEASONAL CHANGES IN BEHAVIOR")
+print("="*80)
+
+print("\nHYPOTHESES:")
+print("-" * 80)
+print("H2a: Risk-taking behavior differs between winter and spring seasons")
+print("H2b: Reward rates differ between winter and spring seasons")
+print("H2c: Vigilance behavior differs between winter and spring seasons")
+print("H2d: Rat activity patterns differ between winter and spring seasons")
+print("-" * 80)
+
+# === ANALYSIS 6.1: Risk-Taking by Season ===
+print("\n--- Analysis 6.1: Risk-Taking Behavior by Season ---")
+
+season_risk_ct = pd.crosstab(dataset1_clean['season_label'], dataset1_clean['risk_label'], 
+                              margins=True, margins_name='Total')
+print("\nCrosstab: Season vs Risk Behavior")
+print(season_risk_ct)
+
+# Chi-square test
+chi2_season, p_season, dof_season, expected_season = chi2_contingency(season_risk_ct.iloc[:-1, :-1])
+print(f"\n Chi-Square Test:")
+print(f"  Chi-Square Test: = {chi2_season:.3f}")
+print(f"  p-value = {p_season:.4f}")
+if p_season < 0.05:
+    print(f"   Result: Risk behavior differs significantly by season (p < 0.05)")
+else:
+    print(f"   Result: No significant seasonal difference (p >= 0.05)")
+
+# Proportions
+prop_season = pd.crosstab(dataset1_clean['season_label'], dataset1_clean['risk_label'], 
+                          normalize='index') * 100
+print("\nProportions by Season (%):")
+print(prop_season.round(2))
+
+# === ANALYSIS 6.2: Reward Rates by Season ===
+print("\n--- Analysis 6.2: Reward Rates by Season ---")
+
+reward_by_season = dataset1_clean.groupby('season_label')['reward'].agg(['mean', 'count', 'std'])
+print("\nReward Statistics by Season:")
+print(reward_by_season)
+
+# T-test for reward by season
+winter_reward = dataset1_clean[dataset1_clean['season'] == 0]['reward']
+spring_reward = dataset1_clean[dataset1_clean['season'] == 1]['reward']
+
+t_reward, p_reward = ttest_ind(winter_reward, spring_reward)
+print(f"\nIndependent T-Test:")
+print(f"  t-statistic = {t_reward:.3f}")
+print(f"  p-value = {p_reward:.4f}")
+
+# === ANALYSIS 6.3: Vigilance by Season ===
+print("\n--- Analysis 6.3: Vigilance Behavior by Season ---")
+
+vigilance_by_season = dataset1_clean.groupby('season_label')['bat_landing_to_food'].describe()
+print("\nVigilance Statistics by Season:")
+print(vigilance_by_season)
+
+# T-test
+winter_vigilance = dataset1_clean[dataset1_clean['season'] == 0]['bat_landing_to_food'].dropna()
+spring_vigilance = dataset1_clean[dataset1_clean['season'] == 1]['bat_landing_to_food'].dropna()
+
+t_vig, p_vig = ttest_ind(winter_vigilance, spring_vigilance)
+print(f"\nIndependent T-Test:")
+print(f"  t-statistic = {t_vig:.3f}")
+print(f"  p-value = {p_vig:.4f}")
+
+# === ANALYSIS 6.4: Rat Activity by Season (Dataset2) ===
+print("\n--- Analysis 6.4: Rat Activity Patterns by Season (Dataset2) ---")
+
+rat_season_stats = dataset2.groupby('season_label')[['rat_arrival_number', 
+                                                      'rat_minutes', 
+                                                      'bat_landing_number']].describe()
+print("\nRat & Bat Activity by Season:")
+print(rat_season_stats)
+
+# T-test for rat minutes
+winter_rats = dataset2[dataset2['season_label'] == 'Winter']['rat_minutes']
+spring_rats = dataset2[dataset2['season_label'] == 'Spring']['rat_minutes']
+
+t_rats, p_rats = ttest_ind(winter_rats, spring_rats)
+print(f"\nT-Test for Rat Minutes:")
+print(f"  Winter: Mean={winter_rats.mean():.2f}, SD={winter_rats.std():.2f}")
+print(f"  Spring: Mean={spring_rats.mean():.2f}, SD={spring_rats.std():.2f}")
+print(f"  t-statistic = {t_rats:.3f}")
+print(f"  p-value = {p_rats:.4f}")
+
+# === ANALYSIS 6.5: Time of Night Analysis by Season ===
+print("\n--- Analysis 6.5: Activity Patterns by Time of Night and Season ---")
+
+time_season_analysis = dataset1_clean.groupby(['season_label', 'time_category']).size().unstack(fill_value=0)
+print("\nBat Landings by Time Category and Season:")
+print(time_season_analysis)
+
+# ============================================================================
+# SECTION 7: INTEGRATED ANALYSIS
+# ============================================================================
+print("\n" + "="*80)
+print("SECTION 7: INTEGRATED ANALYSIS (Dataset1 + Dataset2)")
+print("="*80)
+
+print("\n--- Correlation Analysis ---")
+correlation_vars = integrated_data[['bat_landing_to_food', 'seconds_after_rat_arrival',
+                                     'hours_after_sunset', 'avg_rat_minutes', 
+                                     'avg_food_avail', 'risk', 'reward']].dropna()
+
+corr_matrix = correlation_vars.corr()
+print("\nCorrelation Matrix:")
+print(corr_matrix.round(3))
+
+# ============================================================================
+# SECTION 8: VISUALIZATION
+# ============================================================================
+print("\n" + "="*80)
+print("SECTION 8: GENERATING VISUALIZATIONS")
+print("="*80)
