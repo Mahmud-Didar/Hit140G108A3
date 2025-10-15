@@ -429,3 +429,166 @@ print(corr_matrix.round(3))
 print("\n" + "="*80)
 print("SECTION 8: GENERATING VISUALIZATIONS")
 print("="*80)
+
+
+
+# Figure 1: Vigilance by Risk Behavior
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=dataset1_clean, x='risk_label', y='bat_landing_to_food', palette='Set2')
+plt.title('Figure 1: Vigilance Time by Risk Behavior', fontsize=14, fontweight='bold')
+plt.xlabel('Risk Behavior', fontsize=12)
+plt.ylabel('Time to Approach Food (seconds)', fontsize=12)
+plt.tight_layout()
+plt.savefig('fig1_vigilance_by_risk.png', dpi=300, bbox_inches='tight')
+print(" \n Saved: fig1_vigilance_by_risk.png")
+
+# Figure 2: Risk-Taking Proportion by Season
+season_risk_prop = pd.crosstab(dataset1_clean['season_label'], 
+                                dataset1_clean['risk_label'], 
+                                normalize='index')
+
+fig, ax = plt.subplots(figsize=(10, 6))
+season_risk_prop.plot(kind='bar', stacked=True, color=['#FF6B6B', '#4ECDC4'], ax=ax)
+
+ax.set_title('Figure 2: Proportion of Risk Behaviors by Season', fontsize=14, fontweight='bold')
+ax.set_xlabel('Season', fontsize=12)
+ax.set_ylabel('Proportion', fontsize=12)
+ax.legend(title='Risk Behavior', bbox_to_anchor=(1.05, 1))
+ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+
+plt.tight_layout()
+plt.savefig('fig2_risk_by_season.png', dpi=300, bbox_inches='tight')
+print("\n  Saved: fig2_risk_by_season.png")
+
+
+# Figure 3: Reward Rates by Risk and Season
+plt.figure(figsize=(12, 6))
+reward_data = dataset1_clean.groupby(['season_label', 'risk_label'])['reward'].mean().reset_index()
+sns.barplot(data=reward_data, x='season_label', y='reward', hue='risk_label', palette='viridis')
+plt.title('Figure 3: Average Reward Rate by Season and Risk Behavior', fontsize=14, fontweight='bold')
+plt.xlabel('Season', fontsize=12)
+plt.ylabel('Average Reward Rate', fontsize=12)
+plt.legend(title='Risk Behavior')
+plt.tight_layout()
+plt.savefig('fig3_reward_season_risk.png', dpi=300, bbox_inches='tight')
+print("\n  Saved: fig3_reward_season_risk.png")
+
+# Figure 4: Bat Landings vs Rat Presence (Dataset2)
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=dataset2, x='rat_minutes', y='bat_landing_number', 
+                hue='season_label', palette='Set1', alpha=0.6, s=50)
+plt.title('Figure 4: Bat Landings vs Rat Presence by Season', fontsize=14, fontweight='bold')
+plt.xlabel('Rat Minutes (per 30-min period)', fontsize=12)
+plt.ylabel('Number of Bat Landings', fontsize=12)
+plt.legend(title='Season')
+plt.tight_layout()
+plt.savefig('fig4_bats_vs_rats_season.png', dpi=300, bbox_inches='tight')
+print("\n Saved: fig4_bats_vs_rats_season.png")
+
+# Figure 5: Food Availability vs Rat Presence by Season
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=dataset2, x='rat_minutes', y='food_availability',
+                hue='season_label', palette='coolwarm', alpha=0.6, s=50)
+plt.title('Figure 5: Food Availability vs Rat Presence by Season', fontsize=14, fontweight='bold')
+plt.xlabel('Rat Minutes (per 30-min period)', fontsize=12)
+plt.ylabel('Food Availability', fontsize=12)
+plt.legend(title='Season')
+plt.tight_layout()
+plt.savefig('fig5_food_vs_rats_season.png', dpi=300, bbox_inches='tight')
+print("\n Saved: fig5_food_vs_rats_season.png")
+
+# Figure 6: Distribution of Bat Landing Times by Season
+plt.figure(figsize=(12, 6))
+sns.histplot(data=dataset1_clean, x='hours_after_sunset', hue='season_label', 
+             kde=True, bins=30, palette='muted', alpha=0.6)
+plt.title('Figure 6: Distribution of Bat Landing Times by Season', fontsize=14, fontweight='bold')
+plt.xlabel('Hours After Sunset', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.legend(title='Season')
+plt.tight_layout()
+plt.savefig('fig6_landing_times_season.png', dpi=300, bbox_inches='tight')
+print("\n Saved: fig6_landing_times_season.png")
+
+# Figure 7: Correlation Heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='coolwarm', 
+            center=0, square=True, linewidths=1)
+plt.title('Figure 7: Correlation Matrix of Key Variables', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('fig7_correlation_heatmap.png', dpi=300, bbox_inches='tight')
+print("\n Saved: fig7_correlation_heatmap.png")
+
+# Figure 8: Vigilance by Season
+plt.figure(figsize=(10, 6))
+sns.violinplot(data=dataset1_clean, x='season_label', y='bat_landing_to_food', palette='pastel')
+plt.title('Figure 8: Vigilance Time Distribution by Season', fontsize=14, fontweight='bold')
+plt.xlabel('Season', fontsize=12)
+plt.ylabel('Time to Approach Food (seconds)', fontsize=12)
+plt.tight_layout()
+plt.savefig('fig8_vigilance_season.png', dpi=300, bbox_inches='tight')
+print("\n Saved: fig8_vigilance_season.png")
+
+
+
+# Figure 9: Residual Plot
+plt.figure(figsize=(8,5))
+sns.residplot(x=ols_model.fittedvalues, y=ols_model.resid, lowess=True, line_kws={'color': 'red'})
+plt.xlabel("Fitted values")
+plt.ylabel("Residuals")
+plt.title("Residual Plot")
+plt.tight_layout()
+plt.savefig("fig9_ols_residuals.png", dpi=300)
+
+print("Saved: fig9_ols_residuals.png")
+
+# ============================================================================
+# SECTION 9: SUMMARY STATISTICS TABLE
+# ============================================================================
+print("\n" + "="*80)
+print("SECTION 9: SUMMARY TABLES FOR REPORT")
+print("="*80)
+
+# Create comprehensive summary table
+summary_table = dataset1_clean.groupby(['season_label', 'risk_label']).agg({
+    'bat_landing_to_food': ['mean', 'std', 'count'],
+    'reward': ['mean', 'sum'],
+    'seconds_after_rat_arrival': ['mean', 'std']
+}).round(2)
+
+print("\n--- Summary Statistics by Season and Risk Behavior ---")
+print(summary_table)
+
+# Export to CSV for easy table creation in Word
+summary_table.to_csv('summary_statistics_table.csv')
+print("\n Saved: summary_statistics_table.csv")
+
+# ============================================================================
+# FINAL SUMMARY
+# ============================================================================
+print("\n" + "="*80)
+print("ANALYSIS COMPLETE - KEY FINDINGS SUMMARY")
+print("="*80)
+
+print("\n INVESTIGATION A FINDINGS:")
+print("-" * 80)
+print(f"1. Vigilance Difference: {'Significant' if p_value < 0.05 else 'Not Significant'} (p={p_value:.4f})")
+print(f"   - Risk-avoiders show {'higher' if risk_avoiders.mean() > risk_takers.mean() else 'lower'} vigilance")
+print(f"2. Risk-Reward Association: {'Significant' if p_chi < 0.05 else 'Not Significant'} (p={p_chi:.4f})")
+print(f"3. Effect Size (Cohen's d): {cohens_d:.3f} ({'Small' if abs(cohens_d) < 0.5 else 'Medium/Large'} effect)")
+
+print("\n INVESTIGATION B FINDINGS:")
+print("-" * 80)
+print(f"1. Seasonal Risk Behavior: {'Significant difference' if p_season < 0.05 else 'No significant difference'} (p={p_season:.4f})")
+print(f"2. Seasonal Reward Rates: {'Significant difference' if p_reward < 0.05 else 'No significant difference'} (p={p_reward:.4f})")
+print(f"3. Seasonal Vigilance: {'Significant difference' if p_vig < 0.05 else 'No significant difference'} (p={p_vig:.4f})")
+print(f"4. Rat Activity Patterns: {'Differ significantly' if p_rats < 0.05 else 'Do not differ significantly'} by season (p={p_rats:.4f})")
+
+print("\n" + "="*80)
+print("All visualizations saved as high-resolution PNG files")
+print("Summary statistics exported to CSV")
+print("Ready for report writing!")
+print("="*80)
+
+
+
+plt.show()
