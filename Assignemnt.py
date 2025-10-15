@@ -157,3 +157,152 @@ print(dataset2_by_season)
 integrated_data = dataset1_clean.merge(dataset2_by_season, on='season_label', how='left')
 print(f"\n Created integrated dataset with shape: {integrated_data.shape}")
 print(f"  Combined individual bat behaviors with aggregated environmental data")
+
+# ============================================================================
+# SECTION 5: INVESTIGATION A - PREDATOR PERCEPTION ANALYSIS
+# ============================================================================
+print("\n" + "="*80)
+print("SECTION 5: INVESTIGATION A - DO BATS PERCEIVE RATS AS PREDATORS?")
+print("="*80)
+
+print("\nHYPOTHESES:")
+print("-" * 80)
+print("H1a (Vigilance): Bats show increased vigilance (longer bat_landing_to_food)")
+print("                 when rats are present, indicating predator perception.")
+print("H1b (Avoidance): Bats are more likely to exhibit risk-avoidance behavior")
+print("                 in the presence of rats.")
+print("H1c (Timing):    Bats land later after rat arrival (higher seconds_after_rat_arrival)")
+print("                 when perceiving rats as threats.")
+print("-" * 80)
+
+# === ANALYSIS 5.1: Vigilance Behavior ===
+print("\n--- Analysis 5.1: Vigilance Behavior (bat_landing_to_food) ---")
+
+risk_takers = dataset1_clean[dataset1_clean['risk'] == 1]['bat_landing_to_food'].dropna()
+risk_avoiders = dataset1_clean[dataset1_clean['risk'] == 0]['bat_landing_to_food'].dropna()
+
+print(f"\nDescriptive Statistics:")
+print(f"Risk-Takers:   n={len(risk_takers)}, Mean={risk_takers.mean():.2f}s, SD={risk_takers.std():.2f}s")
+print(f"Risk-Avoiders: n={len(risk_avoiders)}, Mean={risk_avoiders.mean():.2f}s, SD={risk_avoiders.std():.2f}s")
+
+# T-test
+t_stat, p_value = ttest_ind(risk_avoiders, risk_takers, equal_var=False)
+print(f"\nIndependent T-Test:")
+print(f"  t-statistic = {t_stat:.3f}")
+print(f"  p-value = {p_value:.4f}")
+if p_value < 0.05:
+    print(f"  Result: Significant difference (p < 0.05)")
+else:
+    print(f"  Result: No significant difference (p >= 0.05)")
+
+# Mann-Whitney U test (non-parametric)
+u_stat, p_value_mw = mannwhitneyu(risk_avoiders, risk_takers, alternative='two-sided')
+print(f"\nMann-Whitney U Test (non-parametric):")
+print(f"  U-statistic = {u_stat:.3f}")
+print(f"  p-value = {p_value_mw:.4f}")
+
+# Effect size (Cohen's d)
+pooled_std = np.sqrt((risk_takers.std()**2 + risk_avoiders.std()**2) / 2)
+cohens_d = (risk_avoiders.mean() - risk_takers.mean()) / pooled_std
+print(f"\nEffect Size (Cohen's d) = {cohens_d:.3f}")
+if abs(cohens_d) < 0.2:
+    print("  Interpretation: Small effect")
+elif abs(cohens_d) < 0.5:
+    print("  Interpretation: Medium effect")
+else:
+    print("  Interpretation: Large effect")
+
+# === ANALYSIS 5.2: Risk-Taking Behavior ===
+print("\n--- Analysis 5.2: Risk-Taking Behavior Patterns ---")
+
+# Crosstab for risk vs reward
+risk_reward_ct = pd.crosstab(dataset1_clean['risk'], dataset1_clean['reward'], 
+                              margins=True, margins_name='Total')
+print("\nCrosstab: Risk vs Reward")
+print(risk_reward_ct)
+
+# Chi-square test
+chi2, p_chi, dof, expected = chi2_contingency(risk_reward_ct.iloc[:-1, :-1])
+print(f"\nChi-Square Test of Independence:")
+print(f" Chi-Square Test:  = {chi2:.3f}")
+print(f"  p-value = {p_chi:.4f}")
+print(f"  degrees of freedom = {dof}")
+if p_chi < 0.05:
+    print(f"   Result: Significant association (p < 0.05)")
+else:
+    print(f"   Result: No significant association (p >= 0.05)")
+
+# Calculate proportions
+prop_table = pd.crosstab(dataset1_clean['risk'], dataset1_clean['reward'], 
+                         normalize='index') * 100
+print("\nProportions (%):")
+print(prop_table.round(2))
+
+# === ANALYSIS 5.3: Timing of Bat Landing ===
+print("\n--- Analysis 5.3: Timing After Rat Arrival ---")
+
+print("\nDescriptive Statistics: seconds_after_rat_arrival")
+print(dataset1_clean.groupby('risk')['seconds_after_rat_arrival'].describe())
+
+# T-test for timing
+timing_risk_takers = dataset1_clean[dataset1_clean['risk'] == 1]['seconds_after_rat_arrival'].dropna()
+timing_risk_avoiders = dataset1_clean[dataset1_clean['risk'] == 0]['seconds_after_rat_arrival'].dropna()
+
+t_stat_timing, p_value_timing = ttest_ind(timing_risk_avoiders, timing_risk_takers, equal_var=False)
+print(f"\nIndependent T-Test:")
+print(f"  t-statistic = {t_stat_timing:.3f}")
+print(f"  p-value = {p_value_timing:.4f}")
+
+# === ANALYSIS 5.4: Logistic Regression ===
+print("\n--- Analysis 5.4: Logistic Regression (Predicting Risk Behavior) ---")
+
+# Prepare data for logistic regression
+log_data = dataset1_clean[['risk', 'seconds_after_rat_arrival', 
+                            'hours_after_sunset', 'season']].dropna()
+
+X = log_data[['seconds_after_rat_arrival', 'hours_after_sunset', 'season']]
+X = sm.add_constant(X)
+y = log_data['risk']
+
+# Fit logistic regression model
+logit_model = sm.Logit(y, X).fit(disp=0)
+print(logit_model.summary())
+
+print("\nInterpretation:")
+print("  Positive coefficients increase odds of risk-taking behavior")
+print("  Negative coefficients decrease odds of risk-taking behavior")
+
+
+
+# === ANALYSIS 5.5: OLS Regression - Predicting Vigilance Time ===
+
+print("\n" + "="*80)
+# print("="*80)
+
+integrated_data['hours_squared'] = integrated_data['hours_after_sunset'] ** 2
+integrated_data['log_rat_minutes'] = np.log1p(integrated_data['avg_rat_minutes'])  # log(1 + x) to avoid log(0)
+
+integrated_data['season_label'] = integrated_data['season_label'].astype('category')
+integrated_data['time_category'] = integrated_data['time_category'].astype('category')
+
+z_scores = np.abs(zscore(integrated_data['bat_landing_to_food']))
+filtered_data = integrated_data[z_scores < 3]  # remove extreme outliers
+
+
+ols_formula = (
+    'bat_landing_to_food ~ '
+    'seconds_after_rat_arrival + hours_after_sunset + np.power(hours_after_sunset, 2) + '
+    'np.log1p(avg_rat_minutes) + risk + reward + '
+    'C(season_label) + C(time_category) + '
+    'reward:hours_after_sunset + seconds_after_rat_arrival:risk'
+)
+
+
+ols_model = ols(ols_formula, data=filtered_data.dropna()).fit()
+
+print(ols_model.summary())
+
+print("\nModel R² = {:.3f}".format(ols_model.rsquared))
+print("Adjusted R² = {:.3f}".format(ols_model.rsquared_adj))
+
+
